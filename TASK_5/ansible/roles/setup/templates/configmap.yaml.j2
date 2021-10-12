@@ -1,0 +1,16 @@
+{% for tenant, config in tenants.items() %}
+{% for service in config.services %}
+{% if service.name == 'ui' %}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ tenant }}
+data:
+  config.json: |
+    {{ service.uiconfig|to_nice_json|indent(4, indentfirst=False) }}
+{% endif %}
+{% endfor %}
+{% endfor %}

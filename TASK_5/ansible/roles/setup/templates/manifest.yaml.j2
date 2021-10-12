@@ -1,0 +1,80 @@
+{% for tenant, config in tenants.items() %}
+{% for service in config.services %}
+
+---
+
+{% if 'objtype' in service %}
+{% set objtype = service.objtype %}
+{% elif service.name in default_service_config and 'objtype' in default_service_config[service.name] %}
+{% set objtype = default_service_config[service.name]['objtype'] %}
+{% endif %}
+{% if 'image' in service %}
+{% set image = service.image %}
+{% elif service.name in default_service_config and 'image' in default_service_config[service.name] %}
+{% set image = default_service_config[service.name]['image'] %}
+{% endif %}
+{% if 'resources' in service %}
+{% set resources = service.resources %}
+{% elif service.name in default_service_config and 'resources' in default_service_config[service.name] %}
+{% set resources = default_service_config[service.name]['resources'] %}
+{% else %}
+{% set resources = {} %}
+{% endif %}
+{% if 'environment' in service %}
+{% set environment = service.environment %}
+{% elif service.name in default_service_config and 'environment' in default_service_config[service.name] %}
+{% set environment = default_service_config[service.name]['environment'] %}
+{% else %}
+{% set environment = {} %}
+{% endif %}
+{% if objtype == 'deployment' %}
+apiVersion: apps/v1
+kind: Deployment
+{% elif objtype == 'statefulset' %}
+apiVersion: apps/v1
+kind: StatefulSet
+{% endif %}
+metadata:
+  name: {{ tenant }}
+  labels:
+    {{ service.name }}: {{ tenant }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{ service.name }}: {{ tenant }}
+  template:
+    metadata:
+      name: {{ tenant }}
+      labels:
+        {{ service.name }}: {{ tenant }}
+    spec:
+      containers:
+      - name: {{ tenant }}
+        image: {{ image }}
+{% if resources.items()|length > 0 %}
+        resources:
+          requests:
+            {{ resources|to_nice_yaml|indent(12, indentfirst=False) }}
+          limits:
+            {{ resources|to_nice_yaml|indent(12, indentfirst=False) }}
+{% endif %}
+{% if environment.items()|length > 0 %}
+        env:
+{% for key, value in environment.items() %}
+        - name: {{ key }}
+          value: {{ value }}
+{% endfor %}
+{% endif %}
+{% if service.name == 'ui' %}
+        volumeMounts: 
+        - name: config
+          mountPath: /etc/ui/config.json
+          subPath: config.json
+      volumes:
+      - name: config
+        configMap:
+          name: {{ tenant }}
+{% endif %}
+{% endfor %}
+{% endfor %}

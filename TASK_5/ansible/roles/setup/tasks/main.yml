@@ -1,0 +1,12 @@
+---
+  
+- name: Create Configmap Template
+  template:
+    src: configmap.yaml.j2
+    dest: ./configmap.yaml 
+
+- name: Create Deployment/StatefulSet Template
+  template:
+    src: manifest.yaml.j2
+    dest: ./manifest.yaml
+      
